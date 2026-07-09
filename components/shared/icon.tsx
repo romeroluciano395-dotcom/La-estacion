@@ -9,6 +9,8 @@ import {
   Ticket,
   Bus,
   BarChart3,
+  Building2,
+  Sparkles,
   type LucideProps,
 } from "lucide-react";
 
@@ -24,6 +26,8 @@ const ICONS = {
   Ticket,
   Bus,
   BarChart3,
+  Building2,
+  Sparkles,
 } as const;
 
 export type IconName = keyof typeof ICONS;

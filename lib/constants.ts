@@ -11,10 +11,15 @@ export const SITE = {
   whatsapp: "5491155550000", // formato internacional sin signos
 } as const;
 
+/** Construye un enlace de WhatsApp con un mensaje personalizado. */
+export function whatsappLink(message: string): string {
+  return `https://wa.me/${SITE.whatsapp}?text=${encodeURIComponent(message)}`;
+}
+
 /** Número de WhatsApp listo para usar en enlaces wa.me */
-export const WHATSAPP_URL = `https://wa.me/${SITE.whatsapp}?text=${encodeURIComponent(
+export const WHATSAPP_URL = whatsappLink(
   "¡Hola La Estación! Quiero hacer una consulta sobre un viaje.",
-)}`;
+);
 
 export const SOCIALS = {
   instagram: "https://instagram.com/laestacion",

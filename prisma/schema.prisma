@@ -38,6 +38,54 @@ enum UserRole {
   operador
 }
 
+enum EventCategory {
+  recitales
+  turismo
+  deportivos
+  aeropuertos
+  privados
+  empresas
+  especiales
+}
+
+enum EventStatus {
+  disponible
+  ultimos_lugares
+  agotado
+  proximamente
+  cancelado
+}
+
+// Evento / Viaje publicable. Gestionable desde el panel admin (etapa futura).
+model Event {
+  id                    String        @id @default(cuid())
+  slug                  String        @unique
+  nombre                String
+  descripcion           String
+  descripcionCorta      String
+  precio                Int
+  fecha                 DateTime
+  hora                  String
+  ciudad                String
+  lugarSalida           String
+  categoria             EventCategory
+  estado                EventStatus   @default(disponible)
+  lugaresDisponibles    Int           @default(0)
+  imagenPrincipal       String
+  galeria               String[]
+  destacado             Boolean       @default(false)
+  lat                   Float?
+  lng                   Float?
+  informacionImportante String[]
+  faqs                  Json?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  @@index([categoria])
+  @@index([estado])
+  @@index([destacado])
+}
+
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
