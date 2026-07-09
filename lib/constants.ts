@@ -8,12 +8,25 @@ export const SITE = {
   phone: "+54 9 11 5555-0000",
   email: "reservas@laestacion.com.ar",
   address: "Terminal de Ómnibus, Buenos Aires, Argentina",
+  whatsapp: "5491155550000", // formato internacional sin signos
+} as const;
+
+/** Número de WhatsApp listo para usar en enlaces wa.me */
+export const WHATSAPP_URL = `https://wa.me/${SITE.whatsapp}?text=${encodeURIComponent(
+  "¡Hola La Estación! Quiero hacer una consulta sobre un viaje.",
+)}`;
+
+export const SOCIALS = {
+  instagram: "https://instagram.com/laestacion",
+  facebook: "https://facebook.com/laestacion",
+  whatsapp: WHATSAPP_URL,
 } as const;
 
 export const NAV_LINKS = [
   { label: "Inicio", href: "/" },
+  { label: "Próximos Viajes", href: "/proximos-viajes" },
   { label: "Servicios", href: "/servicios" },
-  { label: "Nosotros", href: "/nosotros" },
+  { label: "Galería", href: "/galeria" },
   { label: "Contacto", href: "/contacto" },
 ] as const;
 

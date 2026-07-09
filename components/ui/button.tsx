@@ -5,32 +5,47 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  [
+    "relative inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full text-sm font-semibold",
+    "transition-all duration-200 ease-out will-change-transform",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+    "disabled:pointer-events-none disabled:opacity-50",
+    "active:scale-[0.97] [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  ].join(" "),
   {
     variants: {
       variant: {
-        default:
-          "bg-primary text-primary-foreground shadow hover:bg-primary/90",
-        accent:
-          "bg-accent text-accent-foreground shadow hover:bg-accent/90 font-semibold",
-        destructive:
-          "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90",
-        outline:
-          "border border-input bg-background shadow-sm hover:bg-secondary hover:text-secondary-foreground",
+        // Primary — gradiente azul→violeta con glow
+        primary:
+          "bg-gradient-to-r from-primary to-accent text-white shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/40 hover:-translate-y-0.5",
         secondary:
-          "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80",
-        ghost: "hover:bg-secondary hover:text-secondary-foreground",
+          "bg-secondary text-secondary-foreground border border-white/10 hover:bg-white/10 hover:-translate-y-0.5",
+        outline:
+          "border border-white/15 bg-white/[0.02] text-foreground hover:border-primary/60 hover:bg-primary/10 hover:-translate-y-0.5",
+        ghost: "text-muted-foreground hover:bg-white/5 hover:text-foreground",
+        danger:
+          "bg-destructive text-destructive-foreground shadow-lg shadow-destructive/25 hover:shadow-xl hover:shadow-destructive/40 hover:-translate-y-0.5",
+        success:
+          "bg-success text-success-foreground shadow-lg shadow-success/25 hover:shadow-xl hover:shadow-success/40 hover:-translate-y-0.5",
         link: "text-primary underline-offset-4 hover:underline",
+        // Alias de compatibilidad con páginas existentes
+        default:
+          "bg-gradient-to-r from-primary to-accent text-white shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/40 hover:-translate-y-0.5",
+        accent:
+          "bg-gradient-to-r from-primary to-accent text-white shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/40 hover:-translate-y-0.5",
+        destructive:
+          "bg-destructive text-destructive-foreground shadow-lg shadow-destructive/25 hover:shadow-xl hover:shadow-destructive/40 hover:-translate-y-0.5",
       },
       size: {
-        default: "h-10 px-5 py-2",
-        sm: "h-9 rounded-md px-3 text-xs",
-        lg: "h-12 rounded-lg px-8 text-base",
-        icon: "h-10 w-10",
+        sm: "h-9 px-4 text-xs",
+        default: "h-11 px-6",
+        lg: "h-12 px-8 text-base",
+        xl: "h-14 px-10 text-base",
+        icon: "h-11 w-11",
       },
     },
     defaultVariants: {
-      variant: "default",
+      variant: "primary",
       size: "default",
     },
   },

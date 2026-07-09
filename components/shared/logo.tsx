@@ -4,34 +4,31 @@ import { cn } from "@/lib/utils";
 
 export function Logo({
   className,
-  inverted = false,
+  showText = true,
 }: {
   className?: string;
-  inverted?: boolean;
+  showText?: boolean;
 }) {
   return (
-    <Link href="/" className={cn("group flex items-center gap-2.5", className)}>
-      <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent text-accent-foreground shadow-sm transition-transform group-hover:scale-105">
+    <Link
+      href="/"
+      className={cn("group flex items-center gap-3", className)}
+      aria-label="La Estación — Inicio"
+    >
+      <span className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-accent text-white shadow-lg shadow-primary/30 transition-transform duration-300 group-hover:scale-105">
         <Bus className="h-5 w-5" />
+        <span className="absolute inset-0 rounded-xl bg-gradient-to-br from-primary to-accent opacity-0 blur-md transition-opacity duration-300 group-hover:opacity-60" />
       </span>
-      <span className="flex flex-col leading-none">
-        <span
-          className={cn(
-            "font-display text-lg font-bold tracking-tight",
-            inverted ? "text-white" : "text-foreground",
-          )}
-        >
-          La Estación
+      {showText && (
+        <span className="flex flex-col leading-none">
+          <span className="text-base font-bold tracking-tight text-white">
+            La Estación
+          </span>
+          <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
+            Transporte premium
+          </span>
         </span>
-        <span
-          className={cn(
-            "text-[10px] font-medium uppercase tracking-[0.18em]",
-            inverted ? "text-white/60" : "text-muted-foreground",
-          )}
-        >
-          Transporte de pasajeros
-        </span>
-      </span>
+      )}
     </Link>
   );
 }
