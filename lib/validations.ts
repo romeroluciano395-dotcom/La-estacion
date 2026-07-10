@@ -1,5 +1,61 @@
 import { z } from "zod";
 
+const EVENT_CATEGORIES = [
+  "recitales",
+  "turismo",
+  "deportivos",
+  "aeropuertos",
+  "privados",
+  "empresas",
+  "especiales",
+] as const;
+
+const EVENT_STATUSES = [
+  "disponible",
+  "ultimos-lugares",
+  "agotado",
+  "proximamente",
+  "cancelado",
+] as const;
+
+/** Esquema del formulario de evento del panel (RHF + Zod). */
+export const eventoSchema = z.object({
+  nombre: z.string().min(3, "Ingresá el nombre del evento").max(120),
+  slug: z
+    .string()
+    .min(3, "El slug es obligatorio")
+    .regex(
+      /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
+      "Solo minúsculas, números y guiones (ej: lollapalooza-2027)",
+    ),
+  descripcionCorta: z
+    .string()
+    .min(10, "Mínimo 10 caracteres")
+    .max(180, "Máximo 180 caracteres"),
+  descripcion: z.string().min(20, "Contanos más sobre el viaje (mín. 20)"),
+  precio: z.coerce.number().min(0, "El precio no puede ser negativo"),
+  fecha: z.string().min(1, "Elegí una fecha"),
+  hora: z.string().min(1, "Ingresá la hora"),
+  ciudad: z.string().min(2, "Ingresá la ciudad destino"),
+  lugarSalida: z.string().min(2, "Ingresá el lugar de salida"),
+  categoria: z.enum(EVENT_CATEGORIES, {
+    required_error: "Elegí una categoría",
+  }),
+  estado: z.enum(EVENT_STATUSES, { required_error: "Elegí un estado" }),
+  lugaresDisponibles: z.coerce
+    .number()
+    .int("Debe ser un número entero")
+    .min(0, "No puede ser negativo"),
+  imagenPrincipal: z.string().min(1, "Subí una imagen principal"),
+  galeria: z.array(z.string()).default([]),
+  lat: z.coerce.number().default(-34.6037),
+  lng: z.coerce.number().default(-58.3816),
+  informacionImportante: z.string().default(""),
+  destacado: z.boolean().default(false),
+});
+
+export type EventoInput = z.infer<typeof eventoSchema>;
+
 const SERVICE_CATEGORIES = [
   "recitales",
   "turismo",

@@ -25,6 +25,7 @@ export function EventGallery({
           alt={alt}
           fill
           priority
+          unoptimized={imagenes[activa].startsWith("data:")}
           sizes="(max-width: 1024px) 100vw, 60vw"
           className="object-cover duration-500 animate-in fade-in"
         />
@@ -50,6 +51,7 @@ export function EventGallery({
                 alt={`${alt} — miniatura ${i + 1}`}
                 fill
                 loading="lazy"
+                unoptimized={src.startsWith("data:")}
                 sizes="25vw"
                 className="object-cover"
               />

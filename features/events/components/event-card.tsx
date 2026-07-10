@@ -33,6 +33,7 @@ export function EventCard({ evento }: { evento: Evento }) {
           alt={evento.nombre}
           fill
           loading="lazy"
+          unoptimized={evento.imagenPrincipal.startsWith("data:")}
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
           className={cn(
             "object-cover transition-transform duration-500 group-hover:scale-105",

@@ -32,6 +32,7 @@ export function FeaturedEvent({ evento }: { evento: Evento }) {
         alt={evento.nombre}
         fill
         loading="lazy"
+        unoptimized={evento.imagenPrincipal.startsWith("data:")}
         sizes="(max-width: 640px) 280px, 560px"
         className="object-cover transition-transform duration-700 group-hover:scale-105"
       />
