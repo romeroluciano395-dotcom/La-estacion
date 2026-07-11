@@ -1,37 +1,42 @@
 "use client";
 
-import { useActionState } from "react";
-import { useFormStatus } from "react-dom";
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { LogIn, Lock, Mail, TriangleAlert } from "lucide-react";
 
-import { loginAction, type LoginState } from "@/app/admin/login/actions";
+import { loginAction } from "@/app/admin/login/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
-function SubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <Button type="submit" size="lg" className="w-full" disabled={pending}>
-      {pending ? "Ingresando..." : "Ingresar"}
-      <LogIn />
-    </Button>
-  );
-}
-
 export function LoginForm() {
-  const [state, formAction] = useActionState<LoginState, FormData>(
-    loginAction,
-    {},
-  );
+  const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(null);
+    const formData = new FormData(e.currentTarget);
+
+    startTransition(async () => {
+      const res = await loginAction(formData);
+      if (res.ok) {
+        router.replace("/admin");
+        router.refresh();
+      } else {
+        setError(res.error ?? "No se pudo iniciar sesión.");
+      }
+    });
+  }
 
   return (
-    <form action={formAction} className="space-y-5">
-      {state.error && (
+    <form onSubmit={onSubmit} className="space-y-5">
+      {error && (
         <Alert variant="danger">
           <TriangleAlert />
-          <AlertDescription>{state.error}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
@@ -67,7 +72,10 @@ export function LoginForm() {
         </div>
       </div>
 
-      <SubmitButton />
+      <Button type="submit" size="lg" className="w-full" disabled={pending}>
+        {pending ? "Ingresando..." : "Ingresar"}
+        <LogIn />
+      </Button>
     </form>
   );
 }
