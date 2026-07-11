@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
-import { getSession } from "@/lib/auth";
+import { auth } from "@/auth";
 import { Logo } from "@/components/shared/logo";
 import { Card, CardContent } from "@/components/ui/card";
 import { LoginForm } from "@/components/admin/login-form";
@@ -12,8 +12,8 @@ export const metadata: Metadata = {
 };
 
 export default async function AdminLoginPage() {
-  const session = await getSession();
-  if (session) redirect("/admin");
+  const session = await auth();
+  if (session?.user) redirect("/admin");
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-5">

@@ -13,6 +13,11 @@ import {
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { uploadImageAction } from "@/app/admin/(panel)/upload.actions";
+
+const CLOUDINARY_ON = Boolean(
+  process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
+);
 
 /**
  * Uploader de imágenes moderno. Soporta drag & drop, pegar URL, preview,
@@ -52,7 +57,11 @@ export function ImageUploader({
           }),
       ),
     );
-    add(dataUrls);
+    // Con Cloudinary configurado, subimos y guardamos la URL pública.
+    const urls = CLOUDINARY_ON
+      ? await Promise.all(dataUrls.map((d) => uploadImageAction(d)))
+      : dataUrls;
+    add(urls);
   }
 
   function addUrl() {

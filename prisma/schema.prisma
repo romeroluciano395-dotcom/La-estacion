@@ -1,6 +1,5 @@
-// Esquema Prisma para "La Estación".
-// Base de datos objetivo: PostgreSQL.
-// Alineado con los tipos de dominio en types/index.ts.
+// Esquema Prisma — La Estación
+// Base de datos: PostgreSQL
 
 generator client {
   provider = "prisma-client-js"
@@ -11,31 +10,9 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum ServiceCategory {
-  recitales
-  turismo
-  deportivos
-  aeropuertos
-  privados
-  especiales
-}
-
-enum ReservationStatus {
-  pendiente
-  confirmada
-  pagada
-  cancelada
-}
-
-enum PaymentStatus {
-  pendiente
-  aprobado
-  rechazado
-}
-
-enum UserRole {
+enum Role {
   admin
-  operador
+  editor
 }
 
 enum EventCategory {
@@ -56,107 +33,97 @@ enum EventStatus {
   cancelado
 }
 
-// Evento / Viaje publicable. Gestionable desde el panel admin (etapa futura).
-model Event {
-  id                    String        @id @default(cuid())
-  slug                  String        @unique
-  nombre                String
-  descripcion           String
-  descripcionCorta      String
-  precio                Int
-  fecha                 DateTime
-  hora                  String
-  ciudad                String
-  lugarSalida           String
-  categoria             EventCategory
-  estado                EventStatus   @default(disponible)
-  lugaresDisponibles    Int           @default(0)
-  imagenPrincipal       String
-  galeria               String[]
-  destacado             Boolean       @default(false)
-  lat                   Float?
-  lng                   Float?
-  informacionImportante String[]
-  faqs                  Json?
-  createdAt             DateTime      @default(now())
-  updatedAt             DateTime      @updatedAt
-
-  @@index([categoria])
-  @@index([estado])
-  @@index([destacado])
+enum ReservationStatus {
+  pendiente
+  confirmada
+  pagada
+  cancelada
 }
 
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  passwordHash String
-  name         String
-  role         UserRole @default(operador)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role     @default(admin)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
-model Passenger {
-  id           String        @id @default(cuid())
-  fullName     String
-  email        String        @unique
-  phone        String
-  document     String        @unique
-  reservations Reservation[]
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-}
+model Event {
+  id                String        @id @default(cuid())
+  slug              String        @unique
+  title             String
+  shortDescription  String
+  description        String       @db.Text
+  price             Int
+  date              DateTime      @db.Date
+  time              String
+  city              String
+  departureLocation String
+  category          EventCategory
+  status            EventStatus   @default(disponible)
+  availableSeats    Int           @default(0)
+  featured          Boolean       @default(false)
+  coverImage        String
+  gallery           String[]
+  latitude          Float         @default(-34.6037)
+  longitude         Float         @default(-58.3816)
+  importantInfo     String[]
+  faqs              Json?
+  reservations      Reservation[]
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
 
-model Trip {
-  id             String          @id @default(cuid())
-  category       ServiceCategory
-  title          String
-  origin         String
-  destination    String
-  departureDate  DateTime
-  seatsTotal     Int
-  seatsAvailable Int
-  pricePerSeat   Int
-  reservations   Reservation[]
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
+  @@index([category])
+  @@index([status])
+  @@index([featured])
+  @@index([date])
 }
 
 model Reservation {
-  id            String            @id @default(cuid())
-  code          String            @unique
-  category      ServiceCategory
-  seats         Int
-  amount        Int
-  status        ReservationStatus @default(pendiente)
-  paymentStatus PaymentStatus     @default(pendiente)
-  departureDate DateTime
-  notes         String?
-
-  passenger   Passenger @relation(fields: [passengerId], references: [id])
-  passengerId String
-
-  trip   Trip?   @relation(fields: [tripId], references: [id])
-  tripId String?
-
-  payment Payment?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id        String            @id @default(cuid())
+  firstName String
+  lastName  String
+  dni       String
+  phone     String
+  email     String
+  quantity  Int               @default(1)
+  notes     String?
+  status    ReservationStatus @default(pendiente)
+  event     Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventId   String
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
 
   @@index([status])
-  @@index([category])
+  @@index([eventId])
 }
 
-model Payment {
-  id            String        @id @default(cuid())
-  provider      String        @default("mercadopago")
-  preferenceId  String?
-  externalId    String?
-  amount        Int
-  status        PaymentStatus @default(pendiente)
-  reservation   Reservation   @relation(fields: [reservationId], references: [id])
-  reservationId String        @unique
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+model Contact {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  phone     String?
+  message   String   @db.Text
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([read])
+}
+
+model Settings {
+  id             String @id @default(cuid())
+  companyName    String
+  description    String
+  phone          String
+  whatsapp       String
+  email          String
+  instagram      String
+  facebook       String
+  address        String
+  hours          String
+  logo           String
+  primaryColor   String
+  secondaryColor String
 }

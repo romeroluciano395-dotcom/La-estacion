@@ -1,33 +1,11 @@
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
-import { SESSION_COOKIE } from "@/lib/auth";
+import NextAuth from "next-auth";
+import { authConfig } from "./auth.config";
 
 /**
- * Protege el panel: si no hay sesión, redirige a /admin/login.
- * La verificación real de credenciales ocurre en las páginas/acciones;
- * acá solo chequeamos presencia de la cookie para la UX de redirección.
+ * Protege /admin/** mediante el callback `authorized` de auth.config.
+ * Runtime edge (sin Prisma), decodifica la sesión desde el JWT.
  */
-export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-  const isLogin = pathname === "/admin/login";
-  const hasSession = request.cookies.has(SESSION_COOKIE);
-
-  // Sin sesión e intentando entrar al panel → login
-  if (!hasSession && pathname.startsWith("/admin") && !isLogin) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/admin/login";
-    return NextResponse.redirect(url);
-  }
-
-  // Con sesión y yendo al login → dashboard
-  if (hasSession && isLogin) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/admin";
-    return NextResponse.redirect(url);
-  }
-
-  return NextResponse.next();
-}
+export const { auth: middleware } = NextAuth(authConfig);
 
 export const config = {
   matcher: ["/admin/:path*"],

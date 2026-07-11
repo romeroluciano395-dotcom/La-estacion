@@ -1,9 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 
-import { destroySession } from "@/lib/auth";
+import { signOut } from "@/auth";
 import { eventoSchema } from "@/lib/validations";
 import {
   crearEvento,
@@ -14,9 +13,9 @@ import {
   toggleDestacado,
 } from "@/services/events-admin.service";
 import {
-  _eliminarMensaje,
-  _marcarMensajeLeido,
-  _actualizarSettings,
+  eliminarMensaje,
+  marcarMensajeLeido,
+  actualizarSettings,
 } from "@/services/admin.service";
 import type { EventStatus } from "@/types/event";
 import type { SiteSettings } from "@/types/admin";
@@ -24,8 +23,7 @@ import type { SiteSettings } from "@/types/admin";
 /* ---------------- Sesión ---------------- */
 
 export async function logoutAction() {
-  await destroySession();
-  redirect("/admin/login");
+  await signOut({ redirectTo: "/admin/login" });
 }
 
 /* ---------------- Eventos ---------------- */
@@ -86,13 +84,13 @@ export async function toggleDestacadoAction(id: string) {
 /* ---------------- Mensajes ---------------- */
 
 export async function marcarMensajeLeidoAction(id: string, leido: boolean) {
-  _marcarMensajeLeido(id, leido);
+  await marcarMensajeLeido(id, leido);
   revalidatePath("/admin/mensajes");
   return { ok: true as const };
 }
 
 export async function eliminarMensajeAction(id: string) {
-  _eliminarMensaje(id);
+  await eliminarMensaje(id);
   revalidatePath("/admin/mensajes");
   return { ok: true as const };
 }
@@ -100,7 +98,7 @@ export async function eliminarMensajeAction(id: string) {
 /* ---------------- Configuración ---------------- */
 
 export async function guardarConfiguracionAction(patch: Partial<SiteSettings>) {
-  _actualizarSettings(patch);
+  await actualizarSettings(patch);
   revalidatePath("/admin/configuracion");
   revalidatePath("/", "layout");
   return { ok: true as const };

@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Send } from "lucide-react";
 
 import { contactSchema, type ContactInput } from "@/lib/validations";
+import { enviarContactoAction } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -25,12 +26,15 @@ export function ContactForm() {
   });
 
   async function onSubmit(values: ContactInput) {
-    // Simula el envío. Reemplazar por POST a /api/contacto.
-    await new Promise((r) => setTimeout(r, 700));
-    toast.success("¡Mensaje enviado!", {
-      description: "Te vamos a responder a la brevedad.",
-    });
-    form.reset();
+    const res = await enviarContactoAction(values);
+    if (res.ok) {
+      toast.success("¡Mensaje enviado!", {
+        description: "Te vamos a responder a la brevedad.",
+      });
+      form.reset();
+    } else {
+      toast.error(res.error ?? "No se pudo enviar el mensaje.");
+    }
   }
 
   return (

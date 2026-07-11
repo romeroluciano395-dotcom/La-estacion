@@ -8,119 +8,145 @@ import type {
   SiteSettings,
 } from "@/types/admin";
 import type { EventCategory } from "@/types/event";
-import { EVENTOS } from "./events.data";
-import {
-  MENSAJES,
-  RESERVAS,
-  SITE_SETTINGS,
-  USUARIOS,
-} from "./admin-data";
-import { CATEGORY_LABEL, EVENT_CATEGORIES } from "@/lib/events-config";
+import { CATEGORY_LABEL } from "@/lib/events-config";
+import { statusToDomain, toAdminUser, toMensaje, toReserva, toSiteSettings, toSettingsUpdateData } from "@/server/mappers";
+import { EVENT_STATUS_META } from "@/lib/events-config";
+import { eventRepository } from "@/server/repositories/event.repository";
+import { reservationRepository } from "@/server/repositories/reservation.repository";
+import { contactRepository } from "@/server/repositories/contact.repository";
+import { settingsRepository } from "@/server/repositories/settings.repository";
+import { userRepository } from "@/server/repositories/user.repository";
 
-/* ---------------------------------------------------------------- */
-/*  Dashboard                                                        */
-/* ---------------------------------------------------------------- */
+/* ---------------- Dashboard ---------------- */
 
 export async function getDashboardMetrics(): Promise<DashboardMetrics> {
-  const hoy = new Date().toISOString().slice(0, 10);
-  const activos = EVENTOS.filter(
-    (e) => e.estado === "disponible" || e.estado === "ultimos-lugares",
-  ).length;
-  const agotados = EVENTOS.filter((e) => e.estado === "agotado").length;
-  const proximos = EVENTOS.filter((e) => e.fecha >= hoy).length;
-  const realizados = EVENTOS.filter((e) => e.fecha < hoy).length;
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
 
-  const pasajeros = RESERVAS.reduce((a, r) => a + r.cantidadPasajeros, 0);
+  const [
+    totalEventos,
+    agotados,
+    proximos,
+    realizados,
+    reservasRecibidas,
+    sumaPasajeros,
+    activosDisp,
+    activosUlt,
+    confirmadas,
+  ] = await Promise.all([
+    eventRepository.count(),
+    eventRepository.countByStatus("agotado"),
+    eventRepository.countUpcoming(hoy),
+    eventRepository.countPast(hoy),
+    reservationRepository.count(),
+    reservationRepository.sumPassengers(),
+    eventRepository.countByStatus("disponible"),
+    eventRepository.countByStatus("ultimos_lugares"),
+    reservationRepository.findConfirmedWithPrice(),
+  ]);
 
-  const ingresos = RESERVAS.filter(
-    (r) => r.estado === "pagada" || r.estado === "confirmada",
-  ).reduce((acc, r) => {
-    const ev = EVENTOS.find((e) => e.slug === r.eventoSlug);
-    return acc + (ev?.precio ?? 0) * r.cantidadPasajeros;
-  }, 0);
+  const ingresos = confirmadas.reduce(
+    (acc, r) => acc + (r.event?.price ?? 0) * r.quantity,
+    0,
+  );
 
   return {
-    totalEventos: EVENTOS.length,
-    eventosActivos: activos,
+    totalEventos,
+    eventosActivos: activosDisp + activosUlt,
     eventosAgotados: agotados,
-    reservasRecibidas: RESERVAS.length,
+    reservasRecibidas,
     proximosViajes: proximos,
-    pasajerosRegistrados: pasajeros,
+    pasajerosRegistrados: sumaPasajeros._sum.quantity ?? 0,
     ingresosEstimados: ingresos,
-    viajesRealizados: realizados + 487, // histórico simulado
+    viajesRealizados: realizados + 487, // histórico previo al sistema
   };
 }
 
-/** Reservas por mes (últimos 6 meses) — datos simulados. */
+/** Reservas por mes (últimos 6 meses) — datos reales de la base. */
 export async function getReservasPorMes(): Promise<ChartPoint[]> {
-  const meses = ["Feb", "Mar", "Abr", "May", "Jun", "Jul"];
-  const valores = [18, 24, 31, 27, 39, 46];
-  return meses.map((label, i) => ({ label, value: valores[i] }));
+  const desde = new Date();
+  desde.setMonth(desde.getMonth() - 5, 1);
+  desde.setHours(0, 0, 0, 0);
+
+  const reservas = await reservationRepository.findCreatedSince(desde);
+
+  const meses: ChartPoint[] = [];
+  const cursor = new Date(desde);
+  const fmt = new Intl.DateTimeFormat("es-AR", { month: "short" });
+  const keys: string[] = [];
+  for (let i = 0; i < 6; i++) {
+    const key = `${cursor.getFullYear()}-${cursor.getMonth()}`;
+    keys.push(key);
+    meses.push({ label: fmt.format(cursor).replace(".", ""), value: 0 });
+    cursor.setMonth(cursor.getMonth() + 1);
+  }
+
+  for (const r of reservas) {
+    const d = new Date(r.createdAt);
+    const key = `${d.getFullYear()}-${d.getMonth()}`;
+    const idx = keys.indexOf(key);
+    if (idx >= 0) meses[idx].value += 1;
+  }
+
+  return meses;
 }
 
-/** Distribución de eventos por categoría (real). */
 export async function getEventosPorCategoria(): Promise<CategoryChartPoint[]> {
-  return EVENT_CATEGORIES.map((c) => ({
-    categoria: c.slug,
-    label: c.label,
-    value: EVENTOS.filter((e) => e.categoria === (c.slug as EventCategory))
-      .length,
-  })).filter((p) => p.value > 0);
+  const rows = await eventRepository.groupByCategory();
+  return rows
+    .map((r) => ({
+      categoria: r.category as EventCategory,
+      label: CATEGORY_LABEL[r.category as EventCategory],
+      value: r._count._all,
+    }))
+    .filter((p) => p.value > 0)
+    .sort((a, b) => b.value - a.value);
 }
 
-/** Ocupación: distribución de eventos por estado (real). */
 export async function getOcupacionPorEstado(): Promise<ChartPoint[]> {
-  const estados: { key: string; label: string }[] = [
-    { key: "disponible", label: "Disponible" },
-    { key: "ultimos-lugares", label: "Últimos lugares" },
-    { key: "agotado", label: "Agotado" },
-    { key: "proximamente", label: "Próximamente" },
-    { key: "cancelado", label: "Cancelado" },
-  ];
-  return estados
-    .map((s) => ({
-      label: s.label,
-      value: EVENTOS.filter((e) => e.estado === s.key).length,
+  const rows = await eventRepository.groupByStatus();
+  return rows
+    .map((r) => ({
+      label: EVENT_STATUS_META[statusToDomain(r.status)].label,
+      value: r._count._all,
     }))
     .filter((p) => p.value > 0);
 }
 
-/* ---------------------------------------------------------------- */
-/*  Listados                                                         */
-/* ---------------------------------------------------------------- */
+/* ---------------- Listados ---------------- */
 
 export async function getReservas(): Promise<Reserva[]> {
-  return [...RESERVAS].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const rows = await reservationRepository.findMany();
+  return rows.map(toReserva);
 }
 
 export async function getMensajes(): Promise<Mensaje[]> {
-  return [...MENSAJES].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const rows = await contactRepository.findMany();
+  return rows.map(toMensaje);
 }
 
 export async function getUsuarios(): Promise<AdminUser[]> {
-  return [...USUARIOS].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  const rows = await userRepository.findMany();
+  return rows.map(toAdminUser);
 }
 
-export async function getSettings(): Promise<SiteSettings> {
-  return { ...SITE_SETTINGS };
+export async function getSettings(): Promise<SiteSettings | null> {
+  const row = await settingsRepository.get();
+  return row ? toSiteSettings(row) : null;
 }
 
-/* ---------------------------------------------------------------- */
-/*  Mutaciones (helpers usados por server actions)                   */
-/* ---------------------------------------------------------------- */
+/* ---------------- Mutaciones ---------------- */
 
-export function _marcarMensajeLeido(id: string, leido = true) {
-  const m = MENSAJES.find((x) => x.id === id);
-  if (m) m.leido = leido;
+export async function marcarMensajeLeido(id: string, leido: boolean) {
+  await contactRepository.setRead(id, leido);
 }
 
-export function _eliminarMensaje(id: string) {
-  const i = MENSAJES.findIndex((x) => x.id === id);
-  if (i >= 0) MENSAJES.splice(i, 1);
+export async function eliminarMensaje(id: string) {
+  await contactRepository.delete(id);
 }
 
-export function _actualizarSettings(patch: Partial<SiteSettings>) {
-  Object.assign(SITE_SETTINGS, patch);
+export async function actualizarSettings(patch: Partial<SiteSettings>) {
+  const current = await settingsRepository.get();
+  if (!current) return;
+  await settingsRepository.update(current.id, toSettingsUpdateData(patch));
 }
-
-export const CATEGORY_LABELS = CATEGORY_LABEL;

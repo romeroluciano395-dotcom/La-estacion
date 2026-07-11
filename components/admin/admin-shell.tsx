@@ -5,15 +5,20 @@ import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { Menu, X } from "lucide-react";
 
-import type { SessionUser } from "@/lib/auth";
 import { adminTitleFromPath } from "@/lib/admin-nav";
 import { SidebarContent } from "./sidebar-content";
+
+interface ShellUser {
+  name: string;
+  email: string;
+  role: string;
+}
 
 export function AdminShell({
   user,
   children,
 }: {
-  user: SessionUser;
+  user: ShellUser;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();

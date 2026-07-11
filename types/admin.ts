@@ -11,7 +11,7 @@ export interface Mensaje {
   createdAt: string;
 }
 
-export type UserRole = "admin" | "operador";
+export type UserRole = "admin" | "editor";
 export type UserStatus = "activo" | "inactivo";
 
 export interface AdminUser {

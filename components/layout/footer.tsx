@@ -1,16 +1,22 @@
 import Link from "next/link";
 import { Instagram, Facebook, MessageCircle, Mail, MapPin } from "lucide-react";
 
-import { NAV_LINKS, SITE, SOCIALS } from "@/lib/constants";
+import { NAV_LINKS, whatsappLink } from "@/lib/constants";
+import { getSiteSettings } from "@/services/settings.service";
 import { Logo } from "@/components/shared/logo";
 
-const SOCIAL_LINKS = [
-  { label: "Instagram", href: SOCIALS.instagram, icon: Instagram },
-  { label: "WhatsApp", href: SOCIALS.whatsapp, icon: MessageCircle },
-  { label: "Facebook", href: SOCIALS.facebook, icon: Facebook },
-];
+export async function Footer() {
+  const settings = await getSiteSettings();
+  const waUrl = whatsappLink(
+    "¡Hola La Estación! Quiero hacer una consulta sobre un viaje.",
+  );
 
-export function Footer() {
+  const socialLinks = [
+    { label: "Instagram", href: settings.instagram, icon: Instagram },
+    { label: "WhatsApp", href: waUrl, icon: MessageCircle },
+    { label: "Facebook", href: settings.facebook, icon: Facebook },
+  ];
+
   return (
     <footer className="relative overflow-hidden border-t border-white/10 bg-background">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
@@ -20,10 +26,10 @@ export function Footer() {
           <div className="lg:col-span-1">
             <Logo />
             <p className="mt-5 max-w-xs text-sm leading-relaxed text-muted-foreground">
-              {SITE.description}
+              {settings.descripcion}
             </p>
             <div className="mt-6 flex gap-3">
-              {SOCIAL_LINKS.map((s) => (
+              {socialLinks.map((s) => (
                 <a
                   key={s.label}
                   href={s.href}
@@ -64,14 +70,14 @@ export function Footer() {
             </h3>
             <ul className="space-y-3 text-sm text-muted-foreground">
               <li className="flex items-center gap-2.5">
-                <MessageCircle className="h-4 w-4 text-primary" /> {SITE.phone}
+                <MessageCircle className="h-4 w-4 text-primary" /> {settings.whatsapp}
               </li>
               <li className="flex items-center gap-2.5">
-                <Mail className="h-4 w-4 text-primary" /> {SITE.email}
+                <Mail className="h-4 w-4 text-primary" /> {settings.email}
               </li>
               <li className="flex items-start gap-2.5">
                 <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                {SITE.address}
+                {settings.direccion}
               </li>
             </ul>
           </div>
@@ -86,7 +92,7 @@ export function Footer() {
               minutos.
             </p>
             <a
-              href={SOCIALS.whatsapp}
+              href={waUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="mt-4 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-primary to-accent px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary/25 transition-transform hover:-translate-y-0.5"
@@ -100,7 +106,7 @@ export function Footer() {
         <div className="border-t border-white/10">
           <div className="container-app flex flex-col items-center justify-between gap-3 py-6 text-xs text-muted-foreground sm:flex-row">
             <p>
-              © {new Date().getFullYear()} {SITE.name}. Todos los derechos
+              © {new Date().getFullYear()} {settings.nombre}. Todos los derechos
               reservados.
             </p>
             <p>Diseñado con Next.js · TailwindCSS · Framer Motion</p>

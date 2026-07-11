@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
-import { getSession } from "@/lib/auth";
+import { auth } from "@/auth";
 import { AdminShell } from "@/components/admin/admin-shell";
 
 export const metadata: Metadata = {
@@ -14,8 +14,18 @@ export default async function PanelLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const session = await getSession();
-  if (!session) redirect("/admin/login");
+  const session = await auth();
+  if (!session?.user) redirect("/admin/login");
 
-  return <AdminShell user={session}>{children}</AdminShell>;
+  return (
+    <AdminShell
+      user={{
+        name: session.user.name ?? "Usuario",
+        email: session.user.email ?? "",
+        role: session.user.role,
+      }}
+    >
+      {children}
+    </AdminShell>
+  );
 }
