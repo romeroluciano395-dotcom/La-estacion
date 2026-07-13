@@ -89,8 +89,8 @@ export default async function ServiceDetailPage({ params }: Props) {
               className="mt-6 w-full"
               asChild
             >
-              <Link href={`/reservar?servicio=${service.slug}`}>
-                Reservar este servicio <ArrowRight className="h-4 w-4" />
+              <Link href="/proximos-viajes">
+                Ver próximos viajes <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
 

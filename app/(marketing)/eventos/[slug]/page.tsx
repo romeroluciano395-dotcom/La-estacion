@@ -12,7 +12,9 @@ import {
 } from "lucide-react";
 
 import { formatCurrency } from "@/lib/utils";
+import { SITE, SITE_URL } from "@/lib/constants";
 import { CATEGORY_LABEL } from "@/lib/events-config";
+import { JsonLd } from "@/components/shared/json-ld";
 import {
   getEventos,
   getEventoBySlug,
@@ -48,7 +50,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: evento.nombre,
     description: evento.descripcionCorta,
+    alternates: { canonical: `/eventos/${evento.slug}` },
     openGraph: {
+      type: "website",
+      title: evento.nombre,
+      description: evento.descripcionCorta,
+      url: `/eventos/${evento.slug}`,
+      images: [{ url: evento.imagenPrincipal, width: 1200, height: 630 }],
+    },
+    twitter: {
+      card: "summary_large_image",
       title: evento.nombre,
       description: evento.descripcionCorta,
       images: [evento.imagenPrincipal],
@@ -79,8 +90,39 @@ export default async function EventoPage({ params }: Props) {
     { icon: Navigation, label: "Lugar de salida", value: evento.lugarSalida },
   ];
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Event",
+    name: evento.nombre,
+    description: evento.descripcionCorta,
+    startDate: `${evento.fecha}T${evento.hora}:00-03:00`,
+    eventStatus:
+      evento.estado === "cancelado"
+        ? "https://schema.org/EventCancelled"
+        : "https://schema.org/EventScheduled",
+    eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
+    image: [evento.imagenPrincipal],
+    location: {
+      "@type": "Place",
+      name: evento.ciudad,
+      address: evento.ciudad,
+    },
+    organizer: { "@type": "Organization", name: SITE.name, url: SITE_URL },
+    offers: {
+      "@type": "Offer",
+      price: evento.precio,
+      priceCurrency: "ARS",
+      availability:
+        evento.estado === "agotado"
+          ? "https://schema.org/SoldOut"
+          : "https://schema.org/InStock",
+      url: `${SITE_URL}/eventos/${evento.slug}`,
+    },
+  };
+
   return (
     <div className="bg-aurora">
+      <JsonLd data={jsonLd} />
       <div className="container-app py-10 sm:py-14">
         {/* Breadcrumb */}
         <nav className="flex items-center gap-1.5 text-sm text-muted-foreground">

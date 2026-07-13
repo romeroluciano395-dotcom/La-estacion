@@ -10,7 +10,6 @@ import { Button } from "@/components/ui/button";
 import { CategoryBadge } from "./category-badge";
 import { AvailabilityBadge } from "./availability-badge";
 import { PriceTag } from "./price-tag";
-import { ReservationButton } from "./reservation-button";
 
 function formatFecha(fecha: string) {
   return new Intl.DateTimeFormat("es-AR", {
@@ -93,12 +92,19 @@ export function EventCard({ evento }: { evento: Evento }) {
           <Button variant="outline" size="sm" className="flex-1" asChild>
             <Link href={href}>Ver detalles</Link>
           </Button>
-          <ReservationButton
-            nombreEvento={evento.nombre}
-            estado={evento.estado}
+          <Button
+            variant={agotado ? "secondary" : "primary"}
             size="sm"
             className="flex-1"
-          />
+            asChild={!agotado}
+            disabled={agotado}
+          >
+            {agotado ? (
+              <span>{evento.estado === "cancelado" ? "Cancelado" : "Agotado"}</span>
+            ) : (
+              <Link href={href}>Reservar</Link>
+            )}
+          </Button>
         </div>
       </div>
     </article>

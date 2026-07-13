@@ -1,5 +1,10 @@
 import type { Service } from "@/types";
 
+/** URL pública del sitio (para metadata, sitemap, canonical, OG). */
+export const SITE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ??
+  "http://localhost:3070";
+
 export const SITE = {
   name: "La Estación",
   tagline: "Transporte de pasajeros para cada destino",
@@ -31,16 +36,8 @@ export const NAV_LINKS = [
   { label: "Inicio", href: "/" },
   { label: "Próximos Viajes", href: "/proximos-viajes" },
   { label: "Servicios", href: "/servicios" },
-  { label: "Galería", href: "/galeria" },
+  { label: "Nosotros", href: "/nosotros" },
   { label: "Contacto", href: "/contacto" },
-] as const;
-
-export const ADMIN_NAV = [
-  { label: "Dashboard", href: "/admin", icon: "LayoutDashboard" },
-  { label: "Reservas", href: "/admin/reservas", icon: "Ticket" },
-  { label: "Pasajeros", href: "/admin/pasajeros", icon: "Users" },
-  { label: "Viajes", href: "/admin/viajes", icon: "Bus" },
-  { label: "Estadísticas", href: "/admin/estadisticas", icon: "BarChart3" },
 ] as const;
 
 export const SERVICES: Service[] = [
