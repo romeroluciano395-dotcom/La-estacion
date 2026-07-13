@@ -6,21 +6,12 @@ import { toast } from "sonner";
 import { Mail, MailOpen, Trash2, Reply, CircleDot } from "lucide-react";
 
 import type { Mensaje } from "@/types/admin";
-import { cn } from "@/lib/utils";
+import { cn, formatDateTimeShort } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
   marcarMensajeLeidoAction,
   eliminarMensajeAction,
 } from "@/app/admin/(panel)/actions";
-
-function fmt(iso: string) {
-  return new Intl.DateTimeFormat("es-AR", {
-    day: "2-digit",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(iso));
-}
 
 export function MessagesInbox({ mensajes }: { mensajes: Mensaje[] }) {
   const router = useRouter();
@@ -104,7 +95,7 @@ export function MessagesInbox({ mensajes }: { mensajes: Mensaje[] }) {
                   </p>
                 </div>
                 <span className="shrink-0 text-xs text-muted-foreground">
-                  {fmt(m.createdAt)}
+                  {formatDateTimeShort(m.createdAt)}
                 </span>
               </button>
 

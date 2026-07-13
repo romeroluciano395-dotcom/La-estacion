@@ -11,7 +11,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, formatDateFull } from "@/lib/utils";
 import { SITE, SITE_URL } from "@/lib/constants";
 import { CATEGORY_LABEL } from "@/lib/events-config";
 import { JsonLd } from "@/components/shared/json-ld";
@@ -67,15 +67,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-function formatFechaLarga(fecha: string) {
-  return new Intl.DateTimeFormat("es-AR", {
-    weekday: "long",
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  }).format(new Date(`${fecha}T00:00:00`));
-}
-
 export default async function EventoPage({ params }: Props) {
   const { slug } = await params;
   const evento = await getEventoBySlug(slug);
@@ -84,7 +75,7 @@ export default async function EventoPage({ params }: Props) {
   const relacionados = await getEventosRelacionados(slug);
 
   const datos = [
-    { icon: CalendarDays, label: "Fecha", value: formatFechaLarga(evento.fecha) },
+    { icon: CalendarDays, label: "Fecha", value: formatDateFull(evento.fecha) },
     { icon: Clock, label: "Hora de salida", value: `${evento.hora} hs` },
     { icon: MapPin, label: "Ciudad destino", value: evento.ciudad },
     { icon: Navigation, label: "Lugar de salida", value: evento.lugarSalida },

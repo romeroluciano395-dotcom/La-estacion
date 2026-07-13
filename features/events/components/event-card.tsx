@@ -5,19 +5,11 @@ import Link from "next/link";
 import { CalendarDays, Clock, MapPin, Users } from "lucide-react";
 
 import type { Evento } from "@/types/event";
-import { cn } from "@/lib/utils";
+import { cn, formatDateShort } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { CategoryBadge } from "./category-badge";
 import { AvailabilityBadge } from "./availability-badge";
 import { PriceTag } from "./price-tag";
-
-function formatFecha(fecha: string) {
-  return new Intl.DateTimeFormat("es-AR", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(new Date(`${fecha}T00:00:00`));
-}
 
 export function EventCard({ evento }: { evento: Evento }) {
   const href = `/eventos/${evento.slug}`;
@@ -67,7 +59,7 @@ export function EventCard({ evento }: { evento: Evento }) {
           </div>
           <div className="flex items-center gap-2 text-muted-foreground">
             <CalendarDays className="h-4 w-4 shrink-0 text-primary" />
-            <span>{formatFecha(evento.fecha)}</span>
+            <span>{formatDateShort(evento.fecha)}</span>
           </div>
           <div className="flex items-center gap-2 text-muted-foreground">
             <Clock className="h-4 w-4 shrink-0 text-primary" />

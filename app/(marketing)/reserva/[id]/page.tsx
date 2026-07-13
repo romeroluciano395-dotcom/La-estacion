@@ -5,6 +5,7 @@ import { CheckCircle2, CalendarDays, MapPin, Users, MessageCircle, Hash } from "
 
 import { getReservaById } from "@/services/reservas.service";
 import { getSiteSettings } from "@/services/settings.service";
+import { formatDateFull } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Reveal } from "@/components/shared/motion";
 import { ReservaStatusBadge } from "@/components/reservations/reserva-status-badge";
@@ -13,15 +14,6 @@ export const metadata: Metadata = {
   title: "Reserva confirmada",
   robots: { index: false, follow: false },
 };
-
-function formatFecha(fecha: string) {
-  return new Intl.DateTimeFormat("es-AR", {
-    weekday: "long",
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  }).format(new Date(`${fecha}T00:00:00`));
-}
 
 export default async function ReservaConfirmacionPage({
   params,
@@ -46,7 +38,7 @@ Muchas gracias.`;
   const waUrl = `https://wa.me/${settings.whatsapp}?text=${encodeURIComponent(mensaje)}`;
 
   const datos = [
-    { icon: CalendarDays, label: "Fecha", value: formatFecha(reserva.eventoFecha) },
+    { icon: CalendarDays, label: "Fecha", value: formatDateFull(reserva.eventoFecha) },
     { icon: MapPin, label: "Ciudad", value: reserva.eventoCiudad },
     { icon: Users, label: "Pasajeros", value: String(reserva.cantidadPasajeros) },
     { icon: Hash, label: "Código", value: reserva.id.slice(-8).toUpperCase() },

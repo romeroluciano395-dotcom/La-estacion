@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 
 import type { Reserva } from "@/types/admin";
+import { formatDateNumeric } from "@/lib/utils";
 import {
   confirmarReservaAction,
   cancelarReservaAction,
@@ -50,14 +51,6 @@ import {
 import { ReservaStatusBadge } from "@/components/reservations/reserva-status-badge";
 
 const PAGE_SIZE = 10;
-
-function fmt(iso: string) {
-  return new Intl.DateTimeFormat("es-AR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  }).format(new Date(iso));
-}
 
 export function ReservationsAdminTable({ reservas }: { reservas: Reserva[] }) {
   const router = useRouter();
@@ -236,7 +229,7 @@ export function ReservationsAdminTable({ reservas }: { reservas: Reserva[] }) {
                   <td className="px-4 py-3 text-xs text-muted-foreground">{r.telefono}</td>
                   <td className="px-4 py-3 text-xs text-muted-foreground">{r.email}</td>
                   <td className="px-4 py-3"><ReservaStatusBadge estado={r.estado} /></td>
-                  <td className="px-4 py-3 text-muted-foreground">{fmt(r.createdAt)}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{formatDateNumeric(r.createdAt)}</td>
                   <td className="px-4 py-3">
                     <div className="flex justify-end">
                       <DropdownMenu>

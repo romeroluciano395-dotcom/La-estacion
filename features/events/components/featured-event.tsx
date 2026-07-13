@@ -5,18 +5,11 @@ import Link from "next/link";
 import { ArrowRight, CalendarDays, MapPin } from "lucide-react";
 
 import type { Evento } from "@/types/event";
+import { formatDateLong } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { CategoryBadge } from "./category-badge";
 import { AvailabilityBadge } from "./availability-badge";
 import { PriceTag } from "./price-tag";
-
-function formatFecha(fecha: string) {
-  return new Intl.DateTimeFormat("es-AR", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  }).format(new Date(`${fecha}T00:00:00`));
-}
 
 /** Card grande para el carrusel de destacados. */
 export function FeaturedEvent({ evento }: { evento: Evento }) {
@@ -53,7 +46,7 @@ export function FeaturedEvent({ evento }: { evento: Evento }) {
           </span>
           <span className="flex items-center gap-1.5">
             <CalendarDays className="h-4 w-4 text-primary" />
-            {formatFecha(evento.fecha)}
+            {formatDateLong(evento.fecha)}
           </span>
         </div>
 

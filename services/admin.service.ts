@@ -72,7 +72,7 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
     proximosViajes: proximos,
     pasajerosRegistrados: sumaPasajeros._sum.quantity ?? 0,
     ingresosEstimados: ingresos,
-    viajesRealizados: realizados + 487, // histórico previo al sistema
+    viajesRealizados: realizados,
     ocupacionPromedio,
   };
 }

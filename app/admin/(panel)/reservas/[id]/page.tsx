@@ -14,21 +14,12 @@ import {
 } from "lucide-react";
 
 import { getReservaById } from "@/services/reservas.service";
+import { formatDateTime, formatDateLong } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ReservaStatusBadge } from "@/components/reservations/reserva-status-badge";
 
 export const metadata = { title: "Detalle de reserva" };
-
-function fmtFull(iso: string) {
-  return new Intl.DateTimeFormat("es-AR", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(iso));
-}
 
 export default async function ReservaDetallePage({
   params,
@@ -49,7 +40,7 @@ export default async function ReservaDetallePage({
   const viaje = [
     { icon: MapPin, label: "Evento", value: reserva.eventoNombre },
     { icon: MapPin, label: "Ciudad", value: reserva.eventoCiudad },
-    { icon: CalendarDays, label: "Fecha del viaje", value: reserva.eventoFecha },
+    { icon: CalendarDays, label: "Fecha del viaje", value: formatDateLong(reserva.eventoFecha) },
     { icon: Users, label: "Cantidad", value: String(reserva.cantidadPasajeros) },
   ];
 
@@ -117,11 +108,11 @@ export default async function ReservaDetallePage({
             <ol className="relative space-y-5 border-l border-white/10 pl-6">
               <TimelineItem
                 title="Reserva creada"
-                time={fmtFull(reserva.createdAt)}
+                time={formatDateTime(reserva.createdAt)}
               />
               <TimelineItem
                 title={`Estado actual: ${reserva.estado}`}
-                time={fmtFull(reserva.updatedAt)}
+                time={formatDateTime(reserva.updatedAt)}
               />
             </ol>
           </CardContent>

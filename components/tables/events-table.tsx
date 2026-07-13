@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 
 import type { Evento, EventStatus } from "@/types/event";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, formatDateShort } from "@/lib/utils";
 import { EVENT_CATEGORIES } from "@/lib/events-config";
 import {
   duplicarEventoAction,
@@ -56,14 +56,6 @@ import {
 import { AvailabilityBadge } from "@/features/events/components/availability-badge";
 
 const PAGE_SIZE = 8;
-
-function fmtFecha(fecha: string) {
-  return new Intl.DateTimeFormat("es-AR", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(new Date(`${fecha}T00:00:00`));
-}
 
 export function EventsTable({ eventos }: { eventos: Evento[] }) {
   const router = useRouter();
@@ -205,7 +197,7 @@ export function EventsTable({ eventos }: { eventos: Evento[] }) {
                     </div>
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
-                    {fmtFecha(e.fecha)}
+                    {formatDateShort(e.fecha)}
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">{e.ciudad}</td>
                   <td className="px-4 py-3 font-medium">

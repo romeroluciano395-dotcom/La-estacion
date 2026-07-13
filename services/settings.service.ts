@@ -1,3 +1,4 @@
+import { cache } from "react";
 import type { SiteSettings } from "@/types/admin";
 import { settingsRepository } from "@/server/repositories/settings.repository";
 import { toSiteSettings } from "@/server/mappers";
@@ -18,8 +19,12 @@ const FALLBACK: SiteSettings = {
   colorAcento: "#7C3AED",
 };
 
-/** Configuración del sitio para uso público (footer, contacto, etc.). */
-export async function getSiteSettings(): Promise<SiteSettings> {
+/**
+ * Configuración del sitio para uso público (footer, contacto, etc.).
+ * Memorizada por request con `cache()` para evitar consultas duplicadas
+ * cuando la piden varios componentes del mismo árbol.
+ */
+export const getSiteSettings = cache(async (): Promise<SiteSettings> => {
   const row = await settingsRepository.get();
   return row ? toSiteSettings(row) : FALLBACK;
-}
+});

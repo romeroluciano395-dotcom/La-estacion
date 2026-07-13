@@ -1,18 +1,10 @@
 import { UserPlus } from "lucide-react";
 
 import { getUsuarios } from "@/services/admin.service";
-import { cn } from "@/lib/utils";
+import { cn, formatDateLong } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
 export const metadata = { title: "Usuarios" };
-
-function fmt(iso: string) {
-  return new Intl.DateTimeFormat("es-AR", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  }).format(new Date(iso));
-}
 
 export default async function AdminUsuariosPage() {
   const usuarios = await getUsuarios();
@@ -88,7 +80,7 @@ export default async function AdminUsuariosPage() {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
-                    {fmt(u.createdAt)}
+                    {formatDateLong(u.createdAt)}
                   </td>
                 </tr>
               ))}
