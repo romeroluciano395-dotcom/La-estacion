@@ -88,4 +88,10 @@ export const eventRepository = {
   groupByStatus() {
     return db.event.groupBy({ by: ["status"], _count: { _all: true } });
   },
+
+  seatStats() {
+    return db.event.findMany({
+      select: { totalSeats: true, availableSeats: true },
+    });
+  },
 };

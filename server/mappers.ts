@@ -94,7 +94,7 @@ export function toEventCreateData(
 /* ---------------- Reservation ↔ Reserva ---------------- */
 
 type ReservationWithEvent = PrismaReservation & {
-  event: { title: string; slug: string };
+  event: { title: string; slug: string; city: string; date: Date };
 };
 
 export function toReserva(r: ReservationWithEvent): Reserva {
@@ -105,12 +105,16 @@ export function toReserva(r: ReservationWithEvent): Reserva {
     dni: r.dni,
     telefono: r.phone,
     email: r.email,
+    eventoId: r.eventId,
     eventoNombre: r.event.title,
     eventoSlug: r.event.slug,
+    eventoCiudad: r.event.city,
+    eventoFecha: dateToYmd(r.event.date),
     cantidadPasajeros: r.quantity,
     estado: r.status as ReservaEstado,
     observaciones: r.notes ?? "",
     createdAt: r.createdAt.toISOString(),
+    updatedAt: r.updatedAt.toISOString(),
   };
 }
 

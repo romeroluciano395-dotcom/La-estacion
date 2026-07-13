@@ -304,7 +304,9 @@ async function main() {
   await db.event.deleteMany();
   const created: Event[] = [];
   for (const e of EVENTS) {
-    created.push(await db.event.create({ data: e }));
+    // Capacidad total = lugares iniciales (mínimo 40 para eventos ya agotados).
+    const totalSeats = Math.max((e.availableSeats as number) ?? 0, 40);
+    created.push(await db.event.create({ data: { ...e, totalSeats } }));
   }
 
   // Reservas (ligadas a eventos reales)
@@ -318,8 +320,8 @@ async function main() {
         phone: "+54 9 11 4444-1122",
         email: "maria.g@example.com",
         quantity: 2,
-        status: "pagada",
-        notes: "Pago en efectivo confirmado.",
+        status: "finalizada",
+        notes: "Viaje realizado. Pago en efectivo confirmado.",
         eventId: bySlug("lollapalooza-2027").id,
       },
       {

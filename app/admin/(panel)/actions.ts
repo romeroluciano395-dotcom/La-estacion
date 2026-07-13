@@ -17,6 +17,14 @@ import {
   marcarMensajeLeido,
   actualizarSettings,
 } from "@/services/admin.service";
+import {
+  confirmarReserva,
+  cancelarReserva,
+  finalizarReserva,
+  eliminarReserva,
+  actualizarReserva,
+} from "@/services/reservas.service";
+import { reservaEditSchema } from "@/lib/validations";
 import type { EventStatus } from "@/types/event";
 import type { SiteSettings } from "@/types/admin";
 
@@ -93,6 +101,48 @@ export async function eliminarMensajeAction(id: string) {
   await eliminarMensaje(id);
   revalidatePath("/admin/mensajes");
   return { ok: true as const };
+}
+
+/* ---------------- Reservas ---------------- */
+
+function revalidarReservas() {
+  revalidatePath("/admin/reservas");
+  revalidatePath("/admin");
+  revalidatePath("/proximos-viajes");
+}
+
+export async function confirmarReservaAction(id: string) {
+  await confirmarReserva(id);
+  revalidarReservas();
+  return { ok: true as const };
+}
+
+export async function cancelarReservaAction(id: string) {
+  await cancelarReserva(id);
+  revalidarReservas();
+  return { ok: true as const };
+}
+
+export async function finalizarReservaAction(id: string) {
+  await finalizarReserva(id);
+  revalidarReservas();
+  return { ok: true as const };
+}
+
+export async function eliminarReservaAction(id: string) {
+  await eliminarReserva(id);
+  revalidarReservas();
+  return { ok: true as const };
+}
+
+export async function actualizarReservaAction(id: string, data: unknown) {
+  const parsed = reservaEditSchema.safeParse(data);
+  if (!parsed.success) {
+    return { ok: false as const, error: "Datos inválidos" };
+  }
+  const res = await actualizarReserva(id, parsed.data);
+  revalidarReservas();
+  return res;
 }
 
 /* ---------------- Configuración ---------------- */

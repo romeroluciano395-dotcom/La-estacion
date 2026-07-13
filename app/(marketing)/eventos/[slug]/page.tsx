@@ -28,7 +28,7 @@ import {
 import { CategoryBadge } from "@/features/events/components/category-badge";
 import { AvailabilityBadge } from "@/features/events/components/availability-badge";
 import { EventGallery } from "@/features/events/components/event-gallery";
-import { ReservationButton } from "@/features/events/components/reservation-button";
+import { ReservationDialog } from "@/features/reservations/components/reservation-dialog";
 import { ShareButton } from "@/features/events/components/share-button";
 import { RelatedEvents } from "@/features/events/components/related-events";
 
@@ -209,12 +209,11 @@ export default async function EventoPage({ params }: Props) {
                 </dl>
 
                 <div className="mt-6 space-y-3">
-                  <ReservationButton
+                  <ReservationDialog
+                    eventId={evento.id}
                     nombreEvento={evento.nombre}
                     estado={evento.estado}
-                    size="lg"
-                    fullWidth
-                    label="Reservar por WhatsApp"
+                    lugaresDisponibles={evento.lugaresDisponibles}
                   />
                   <ShareButton
                     title={evento.nombre}

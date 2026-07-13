@@ -13,7 +13,11 @@ export async function getEventoById(id: string): Promise<Evento | undefined> {
 }
 
 export async function crearEvento(input: EventoInput): Promise<Evento> {
-  const row = await eventRepository.create(toEventCreateData(input));
+  // Al crear, la capacidad total = lugares disponibles iniciales.
+  const row = await eventRepository.create({
+    ...toEventCreateData(input),
+    totalSeats: input.lugaresDisponibles,
+  });
   return toEvento(row);
 }
 
@@ -21,7 +25,14 @@ export async function actualizarEvento(
   id: string,
   input: EventoInput,
 ): Promise<Evento | null> {
-  const row = await eventRepository.update(id, toEventCreateData(input));
+  const current = await eventRepository.findById(id);
+  if (!current) return null;
+  // La capacidad total nunca baja; sube si se cargan más lugares.
+  const totalSeats = Math.max(current.totalSeats, input.lugaresDisponibles);
+  const row = await eventRepository.update(id, {
+    ...toEventCreateData(input),
+    totalSeats,
+  });
   return toEvento(row);
 }
 

@@ -56,6 +56,52 @@ export const eventoSchema = z.object({
 
 export type EventoInput = z.infer<typeof eventoSchema>;
 
+const RESERVATION_STATUSES = [
+  "pendiente",
+  "confirmada",
+  "cancelada",
+  "finalizada",
+] as const;
+
+/** Formulario público de reserva (RHF + Zod). */
+export const reservaPublicaSchema = z.object({
+  eventId: z.string().min(1, "Evento inválido"),
+  nombre: z.string().min(2, "Ingresá tu nombre").max(60),
+  apellido: z.string().min(2, "Ingresá tu apellido").max(60),
+  dni: z
+    .string()
+    .min(6, "DNI inválido")
+    .max(15, "DNI inválido")
+    .regex(/^[0-9.]+$/, "El DNI solo puede tener números"),
+  telefono: z.string().min(8, "Teléfono inválido").max(20),
+  email: z.string().email("Email inválido"),
+  cantidad: z.coerce
+    .number()
+    .int("Debe ser un número entero")
+    .min(1, "Al menos 1 pasajero")
+    .max(20, "Máximo 20 pasajeros por reserva"),
+  observaciones: z.string().max(500, "Máximo 500 caracteres").optional(),
+  aceptaTerminos: z.literal(true, {
+    errorMap: () => ({ message: "Tenés que aceptar los términos y condiciones" }),
+  }),
+});
+
+export type ReservaPublicaInput = z.infer<typeof reservaPublicaSchema>;
+
+/** Edición de una reserva desde el panel. */
+export const reservaEditSchema = z.object({
+  nombre: z.string().min(2, "Ingresá el nombre").max(60),
+  apellido: z.string().min(2, "Ingresá el apellido").max(60),
+  dni: z.string().min(6, "DNI inválido").max(15),
+  telefono: z.string().min(8, "Teléfono inválido").max(20),
+  email: z.string().email("Email inválido"),
+  cantidad: z.coerce.number().int().min(1, "Al menos 1"),
+  observaciones: z.string().max(500).optional(),
+  estado: z.enum(RESERVATION_STATUSES),
+});
+
+export type ReservaEditInput = z.infer<typeof reservaEditSchema>;
+
 const SERVICE_CATEGORIES = [
   "recitales",
   "turismo",

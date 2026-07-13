@@ -26,8 +26,8 @@ export interface AdminUser {
 export type ReservaEstado =
   | "pendiente"
   | "confirmada"
-  | "pagada"
-  | "cancelada";
+  | "cancelada"
+  | "finalizada";
 
 /** Reserva registrada para un evento. */
 export interface Reserva {
@@ -37,12 +37,16 @@ export interface Reserva {
   dni: string;
   telefono: string;
   email: string;
+  eventoId: string;
   eventoNombre: string;
   eventoSlug: string;
+  eventoCiudad: string;
+  eventoFecha: string;
   cantidadPasajeros: number;
   estado: ReservaEstado;
   observaciones: string;
   createdAt: string;
+  updatedAt: string;
 }
 
 /** Configuración global del sitio (editable desde el panel). */
@@ -80,4 +84,5 @@ export interface DashboardMetrics {
   pasajerosRegistrados: number;
   ingresosEstimados: number;
   viajesRealizados: number;
+  ocupacionPromedio: number;
 }

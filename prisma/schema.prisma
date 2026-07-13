@@ -36,8 +36,8 @@ enum EventStatus {
 enum ReservationStatus {
   pendiente
   confirmada
-  pagada
   cancelada
+  finalizada
 }
 
 model User {
@@ -64,6 +64,7 @@ model Event {
   category          EventCategory
   status            EventStatus   @default(disponible)
   availableSeats    Int           @default(0)
+  totalSeats        Int           @default(0)
   featured          Boolean       @default(false)
   coverImage        String
   gallery           String[]

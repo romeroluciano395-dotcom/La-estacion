@@ -1,11 +1,27 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Search, Download, Eye } from "lucide-react";
+import {
+  Search,
+  Download,
+  MoreHorizontal,
+  Eye,
+  Pencil,
+  CircleCheck,
+  CircleX,
+  Flag,
+  Trash2,
+} from "lucide-react";
 
-import type { Reserva, ReservaEstado } from "@/types/admin";
-import { cn } from "@/lib/utils";
+import type { Reserva } from "@/types/admin";
+import {
+  confirmarReservaAction,
+  cancelarReservaAction,
+  finalizarReservaAction,
+  eliminarReservaAction,
+} from "@/app/admin/(panel)/actions";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,196 +32,256 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { ReservaStatusBadge } from "@/components/reservations/reserva-status-badge";
 
-const ESTADO_META: Record<ReservaEstado, { label: string; className: string }> =
-  {
-    pendiente: {
-      label: "Pendiente",
-      className: "border-amber-500/30 bg-amber-500/15 text-amber-400",
-    },
-    confirmada: {
-      label: "Confirmada",
-      className: "border-primary/30 bg-primary/15 text-primary",
-    },
-    pagada: {
-      label: "Pagada",
-      className: "border-success/30 bg-success/15 text-success",
-    },
-    cancelada: {
-      label: "Cancelada",
-      className: "border-destructive/30 bg-destructive/15 text-destructive",
-    },
-  };
+const PAGE_SIZE = 10;
 
-function fmt(dateIso: string) {
+function fmt(iso: string) {
   return new Intl.DateTimeFormat("es-AR", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
-  }).format(new Date(dateIso));
+  }).format(new Date(iso));
 }
 
 export function ReservationsAdminTable({ reservas }: { reservas: Reserva[] }) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
   const [query, setQuery] = useState("");
   const [estado, setEstado] = useState("todas");
-  const [detalle, setDetalle] = useState<Reserva | null>(null);
+  const [evento, setEvento] = useState("todos");
+  const [ciudad, setCiudad] = useState("todas");
+  const [fecha, setFecha] = useState("");
+  const [sort, setSort] = useState("fecha");
+  const [page, setPage] = useState(1);
+  const [toDelete, setToDelete] = useState<Reserva | null>(null);
+
+  const eventos = useMemo(
+    () => Array.from(new Set(reservas.map((r) => r.eventoNombre))).sort(),
+    [reservas],
+  );
+  const ciudades = useMemo(
+    () => Array.from(new Set(reservas.map((r) => r.eventoCiudad))).sort(),
+    [reservas],
+  );
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return reservas.filter((r) => {
+    let list = reservas.filter((r) => {
       if (
         q &&
-        !`${r.nombre} ${r.apellido} ${r.dni} ${r.email} ${r.eventoNombre}`
+        !`${r.nombre} ${r.apellido} ${r.eventoNombre} ${r.dni} ${r.email} ${r.telefono}`
           .toLowerCase()
           .includes(q)
       )
         return false;
       if (estado !== "todas" && r.estado !== estado) return false;
+      if (evento !== "todos" && r.eventoNombre !== evento) return false;
+      if (ciudad !== "todas" && r.eventoCiudad !== ciudad) return false;
+      if (fecha && r.eventoFecha !== fecha) return false;
       return true;
     });
-  }, [reservas, query, estado]);
+    list = [...list].sort((a, b) => {
+      if (sort === "nombre") return a.nombre.localeCompare(b.nombre, "es");
+      if (sort === "evento")
+        return a.eventoNombre.localeCompare(b.eventoNombre, "es");
+      if (sort === "cantidad") return b.cantidadPasajeros - a.cantidadPasajeros;
+      if (sort === "estado") return a.estado.localeCompare(b.estado);
+      return b.createdAt.localeCompare(a.createdAt);
+    });
+    return list;
+  }, [reservas, query, estado, evento, ciudad, fecha, sort]);
 
-  function exportCsv() {
-    const headers = [
-      "Nombre",
-      "Apellido",
-      "DNI",
-      "Teléfono",
-      "Email",
-      "Evento",
-      "Pasajeros",
-      "Estado",
-      "Fecha",
-      "Observaciones",
-    ];
-    const rows = filtered.map((r) => [
-      r.nombre,
-      r.apellido,
-      r.dni,
-      r.telefono,
-      r.email,
-      r.eventoNombre,
-      String(r.cantidadPasajeros),
-      r.estado,
-      fmt(r.createdAt),
-      r.observaciones.replace(/\n/g, " "),
-    ]);
-    const csv = [headers, ...rows]
-      .map((row) => row.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))
-      .join("\n");
-    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `reservas-${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success("Reservas exportadas");
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const pageItems = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  function run(action: () => Promise<unknown>, msg: string) {
+    startTransition(async () => {
+      await action();
+      toast.success(msg);
+      router.refresh();
+    });
+  }
+
+  function confirmDelete() {
+    if (!toDelete) return;
+    const r = toDelete;
+    setToDelete(null);
+    run(() => eliminarReservaAction(r.id), "Reserva eliminada");
   }
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+      {/* Toolbar */}
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
         <div className="relative flex-1">
           <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Buscar por pasajero, DNI, email o evento…"
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setPage(1);
+            }}
+            placeholder="Buscar por pasajero, DNI, email, teléfono o evento…"
             className="pl-10"
           />
         </div>
-        <Select value={estado} onValueChange={setEstado}>
-          <SelectTrigger className="sm:w-44">
-            <SelectValue placeholder="Estado" />
-          </SelectTrigger>
+        <Button variant="secondary" asChild>
+          <a href="/admin/reservas/export">
+            <Download /> Exportar a Excel
+          </a>
+        </Button>
+      </div>
+
+      {/* Filtros */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        <Select value={estado} onValueChange={(v) => { setEstado(v); setPage(1); }}>
+          <SelectTrigger><SelectValue placeholder="Estado" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="todas">Todos los estados</SelectItem>
             <SelectItem value="pendiente">Pendiente</SelectItem>
             <SelectItem value="confirmada">Confirmada</SelectItem>
-            <SelectItem value="pagada">Pagada</SelectItem>
+            <SelectItem value="finalizada">Finalizada</SelectItem>
             <SelectItem value="cancelada">Cancelada</SelectItem>
           </SelectContent>
         </Select>
-        <Button variant="secondary" onClick={exportCsv}>
-          <Download /> Exportar
-        </Button>
+
+        <Select value={evento} onValueChange={(v) => { setEvento(v); setPage(1); }}>
+          <SelectTrigger><SelectValue placeholder="Evento" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos los eventos</SelectItem>
+            {eventos.map((e) => (
+              <SelectItem key={e} value={e}>{e}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={ciudad} onValueChange={(v) => { setCiudad(v); setPage(1); }}>
+          <SelectTrigger><SelectValue placeholder="Ciudad" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todas">Todas las ciudades</SelectItem>
+            {ciudades.map((c) => (
+              <SelectItem key={c} value={c}>{c}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Input
+          type="date"
+          value={fecha}
+          onChange={(e) => { setFecha(e.target.value); setPage(1); }}
+          aria-label="Fecha del viaje"
+        />
+
+        <Select value={sort} onValueChange={setSort}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="fecha">Orden: Más recientes</SelectItem>
+            <SelectItem value="nombre">Orden: Nombre</SelectItem>
+            <SelectItem value="evento">Orden: Evento</SelectItem>
+            <SelectItem value="cantidad">Orden: Cantidad</SelectItem>
+            <SelectItem value="estado">Orden: Estado</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
+      {/* Tabla */}
       <div className="overflow-hidden rounded-2xl border border-white/10 bg-card/40 backdrop-blur-xl">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[900px] text-sm">
+          <table className="w-full min-w-[980px] text-sm">
             <thead>
               <tr className="border-b border-white/10 text-left text-xs uppercase tracking-wide text-muted-foreground">
-                <th className="px-4 py-3 font-medium">Pasajero</th>
-                <th className="px-4 py-3 font-medium">DNI</th>
-                <th className="px-4 py-3 font-medium">Contacto</th>
+                <th className="px-4 py-3 font-medium">ID</th>
+                <th className="px-4 py-3 font-medium">Nombre</th>
+                <th className="px-4 py-3 font-medium">Apellido</th>
                 <th className="px-4 py-3 font-medium">Evento</th>
-                <th className="px-4 py-3 font-medium">Pasaj.</th>
+                <th className="px-4 py-3 text-center font-medium">Cant.</th>
+                <th className="px-4 py-3 font-medium">Teléfono</th>
+                <th className="px-4 py-3 font-medium">Correo</th>
                 <th className="px-4 py-3 font-medium">Estado</th>
                 <th className="px-4 py-3 font-medium">Fecha</th>
-                <th className="px-4 py-3 text-right font-medium">Ver</th>
+                <th className="px-4 py-3 text-right font-medium">Acciones</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map((r) => (
+              {pageItems.map((r) => (
                 <tr
                   key={r.id}
                   className="border-b border-white/5 transition-colors last:border-0 hover:bg-white/[0.02]"
                 >
-                  <td className="px-4 py-3 font-medium">
-                    {r.nombre} {r.apellido}
+                  <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
+                    {r.id.slice(-8).toUpperCase()}
                   </td>
-                  <td className="px-4 py-3 text-muted-foreground">{r.dni}</td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    <div className="text-xs">{r.telefono}</div>
-                    <div className="text-xs">{r.email}</div>
-                  </td>
+                  <td className="px-4 py-3 font-medium">{r.nombre}</td>
+                  <td className="px-4 py-3">{r.apellido}</td>
                   <td className="px-4 py-3 text-muted-foreground">
                     <span className="line-clamp-1">{r.eventoNombre}</span>
                   </td>
-                  <td className="px-4 py-3 text-center text-muted-foreground">
-                    {r.cantidadPasajeros}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={cn(
-                        "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium",
-                        ESTADO_META[r.estado].className,
-                      )}
-                    >
-                      {ESTADO_META[r.estado].label}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {fmt(r.createdAt)}
-                  </td>
+                  <td className="px-4 py-3 text-center">{r.cantidadPasajeros}</td>
+                  <td className="px-4 py-3 text-xs text-muted-foreground">{r.telefono}</td>
+                  <td className="px-4 py-3 text-xs text-muted-foreground">{r.email}</td>
+                  <td className="px-4 py-3"><ReservaStatusBadge estado={r.estado} /></td>
+                  <td className="px-4 py-3 text-muted-foreground">{fmt(r.createdAt)}</td>
                   <td className="px-4 py-3">
                     <div className="flex justify-end">
-                      <button
-                        onClick={() => setDetalle(r)}
-                        className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-white/10 hover:text-foreground"
-                        aria-label="Ver detalle"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button
+                            className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-white/10 hover:text-foreground"
+                            aria-label="Acciones"
+                            disabled={pending}
+                          >
+                            <MoreHorizontal className="h-4 w-4" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Reserva</DropdownMenuLabel>
+                          <DropdownMenuItem onClick={() => router.push(`/admin/reservas/${r.id}`)}>
+                            <Eye /> Ver detalle
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => router.push(`/admin/reservas/${r.id}/editar`)}>
+                            <Pencil /> Editar
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuLabel>Estado</DropdownMenuLabel>
+                          <DropdownMenuItem onClick={() => run(() => confirmarReservaAction(r.id), "Reserva confirmada")}>
+                            <CircleCheck /> Confirmar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => run(() => finalizarReservaAction(r.id), "Reserva finalizada")}>
+                            <Flag /> Finalizar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => run(() => cancelarReservaAction(r.id), "Reserva cancelada")}>
+                            <CircleX /> Cancelar
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem variant="danger" onClick={() => setToDelete(r)}>
+                            <Trash2 /> Eliminar
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </td>
                 </tr>
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td
-                    colSpan={8}
-                    className="px-4 py-16 text-center text-muted-foreground"
-                  >
-                    No hay reservas que coincidan.
+                  <td colSpan={10} className="px-4 py-16 text-center text-muted-foreground">
+                    No hay reservas que coincidan con la búsqueda.
                   </td>
                 </tr>
               )}
@@ -214,43 +290,43 @@ export function ReservationsAdminTable({ reservas }: { reservas: Reserva[] }) {
         </div>
       </div>
 
-      <Dialog open={!!detalle} onOpenChange={(o) => !o && setDetalle(null)}>
+      {/* Paginación */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
+            Página {page} de {totalPages} · {filtered.length} reservas
+          </p>
+          <div className="flex gap-2">
+            <Button variant="secondary" size="sm" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>
+              Anterior
+            </Button>
+            <Button variant="secondary" size="sm" disabled={page === totalPages} onClick={() => setPage((p) => p + 1)}>
+              Siguiente
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmación de borrado */}
+      <Dialog open={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>
-              {detalle?.nombre} {detalle?.apellido}
-            </DialogTitle>
-            <DialogDescription>{detalle?.eventoNombre}</DialogDescription>
+            <DialogTitle>Eliminar reserva</DialogTitle>
+            <DialogDescription>
+              ¿Seguro que querés eliminar la reserva de{" "}
+              <span className="font-medium text-foreground">
+                {toDelete?.nombre} {toDelete?.apellido}
+              </span>
+              ? Se repondrán los lugares al evento. Esta acción no se puede
+              deshacer.
+            </DialogDescription>
           </DialogHeader>
-          {detalle && (
-            <dl className="space-y-3 text-sm">
-              <Row k="DNI" v={detalle.dni} />
-              <Row k="Teléfono" v={detalle.telefono} />
-              <Row k="Email" v={detalle.email} />
-              <Row k="Pasajeros" v={String(detalle.cantidadPasajeros)} />
-              <Row k="Estado" v={ESTADO_META[detalle.estado].label} />
-              <Row k="Fecha" v={fmt(detalle.createdAt)} />
-              <div>
-                <dt className="text-xs uppercase tracking-wide text-muted-foreground">
-                  Observaciones
-                </dt>
-                <dd className="mt-1">
-                  {detalle.observaciones || "Sin observaciones."}
-                </dd>
-              </div>
-            </dl>
-          )}
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setToDelete(null)}>Cancelar</Button>
+            <Button variant="danger" onClick={confirmDelete}><Trash2 /> Eliminar</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
-  );
-}
-
-function Row({ k, v }: { k: string; v: string }) {
-  return (
-    <div className="flex items-center justify-between gap-4 border-b border-white/5 pb-2">
-      <dt className="text-muted-foreground">{k}</dt>
-      <dd className="text-right font-medium">{v}</dd>
     </div>
   );
 }

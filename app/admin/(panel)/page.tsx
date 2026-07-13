@@ -37,7 +37,7 @@ export default async function DashboardPage() {
     { label: "Próximos viajes", value: metrics.proximosViajes, icon: CalendarClock, accent: "primary" as const },
     { label: "Pasajeros registrados", value: metrics.pasajerosRegistrados, icon: Users, accent: "accent" as const },
     { label: "Ingresos estimados", value: formatCurrency(metrics.ingresosEstimados), icon: DollarSign, accent: "success" as const },
-    { label: "Viajes realizados", value: metrics.viajesRealizados.toLocaleString("es-AR"), icon: Bus, accent: "primary" as const },
+    { label: "Ocupación promedio", value: `${metrics.ocupacionPromedio}%`, icon: Bus, accent: "primary" as const },
   ];
 
   return (

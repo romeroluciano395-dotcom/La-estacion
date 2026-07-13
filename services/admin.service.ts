@@ -50,6 +50,20 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
     0,
   );
 
+  // Ocupación promedio: promedio de (ocupados / capacidad) por evento.
+  const seats = await eventRepository.seatStats();
+  const conCupo = seats.filter((s) => s.totalSeats > 0);
+  const ocupacionPromedio = conCupo.length
+    ? Math.round(
+        (conCupo.reduce(
+          (acc, s) => acc + (s.totalSeats - s.availableSeats) / s.totalSeats,
+          0,
+        ) /
+          conCupo.length) *
+          100,
+      )
+    : 0;
+
   return {
     totalEventos,
     eventosActivos: activosDisp + activosUlt,
@@ -59,6 +73,7 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
     pasajerosRegistrados: sumaPasajeros._sum.quantity ?? 0,
     ingresosEstimados: ingresos,
     viajesRealizados: realizados + 487, // histórico previo al sistema
+    ocupacionPromedio,
   };
 }
 

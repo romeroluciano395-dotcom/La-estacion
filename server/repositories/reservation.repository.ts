@@ -1,8 +1,12 @@
-import type { Prisma } from "@prisma/client";
+import type { Prisma, ReservationStatus } from "@prisma/client";
 import { db } from "@/server/db";
 
 const includeEvent = {
-  include: { event: { select: { title: true, slug: true, price: true } } },
+  include: {
+    event: {
+      select: { title: true, slug: true, city: true, date: true, price: true },
+    },
+  },
 } as const;
 
 export const reservationRepository = {
@@ -13,8 +17,28 @@ export const reservationRepository = {
     });
   },
 
+  findByIdWithEvent(id: string) {
+    return db.reservation.findUnique({ where: { id }, ...includeEvent });
+  },
+
   create(data: Prisma.ReservationCreateInput) {
     return db.reservation.create({ data, ...includeEvent });
+  },
+
+  update(id: string, data: Prisma.ReservationUpdateInput) {
+    return db.reservation.update({ where: { id }, data, ...includeEvent });
+  },
+
+  updateStatus(id: string, status: ReservationStatus) {
+    return db.reservation.update({
+      where: { id },
+      data: { status },
+      ...includeEvent,
+    });
+  },
+
+  delete(id: string) {
+    return db.reservation.delete({ where: { id } });
   },
 
   count() {
@@ -25,10 +49,10 @@ export const reservationRepository = {
     return db.reservation.aggregate({ _sum: { quantity: true } });
   },
 
-  /** Reservas pagadas/confirmadas con precio del evento (para ingresos). */
+  /** Reservas confirmadas/finalizadas con precio del evento (para ingresos). */
   findConfirmedWithPrice() {
     return db.reservation.findMany({
-      where: { status: { in: ["pagada", "confirmada"] } },
+      where: { status: { in: ["confirmada", "finalizada"] } },
       select: { quantity: true, event: { select: { price: true } } },
     });
   },
