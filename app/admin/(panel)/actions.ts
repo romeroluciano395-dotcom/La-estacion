@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { Prisma } from "@prisma/client";
 
 import { auth, signOut } from "@/auth";
 import { eventoSchema, reservaEditSchema } from "@/lib/validations";
@@ -37,6 +38,14 @@ async function requireSession() {
   return session;
 }
 
+/** Detecta violación de unicidad (slug repetido) de Prisma. */
+function isSlugDuplicado(error: unknown): boolean {
+  return (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === "P2002"
+  );
+}
+
 /* ---------------- Sesión ---------------- */
 
 export async function logoutAction() {
@@ -57,9 +66,16 @@ export async function crearEventoAction(data: unknown) {
   if (!parsed.success) {
     return { ok: false as const, error: "Datos inválidos" };
   }
-  const evento = await crearEvento(parsed.data);
-  revalidarEventos();
-  return { ok: true as const, id: evento.id };
+  try {
+    const evento = await crearEvento(parsed.data);
+    revalidarEventos();
+    return { ok: true as const, id: evento.id };
+  } catch (error) {
+    if (isSlugDuplicado(error)) {
+      return { ok: false as const, error: "Ya existe un evento con ese slug." };
+    }
+    throw error;
+  }
 }
 
 export async function actualizarEventoAction(id: string, data: unknown) {
@@ -68,9 +84,16 @@ export async function actualizarEventoAction(id: string, data: unknown) {
   if (!parsed.success) {
     return { ok: false as const, error: "Datos inválidos" };
   }
-  await actualizarEvento(id, parsed.data);
-  revalidarEventos();
-  return { ok: true as const, id };
+  try {
+    await actualizarEvento(id, parsed.data);
+    revalidarEventos();
+    return { ok: true as const, id };
+  } catch (error) {
+    if (isSlugDuplicado(error)) {
+      return { ok: false as const, error: "Ya existe un evento con ese slug." };
+    }
+    throw error;
+  }
 }
 
 export async function eliminarEventoAction(id: string) {

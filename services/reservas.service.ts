@@ -21,15 +21,18 @@ function ocupaLugar(status: ReservationStatus): boolean {
   return status !== "cancelada";
 }
 
-/** Recalcula el estado del evento según los lugares disponibles. */
+/** Recalcula el estado del evento según los lugares disponibles y la capacidad. */
 function recalcularEstadoEvento(
   disponibles: number,
+  total: number,
   actual: EventStatus,
 ): EventStatus {
   // Estados gestionados manualmente por el admin no se sobrescriben.
   if (actual === "cancelado" || actual === "proximamente") return actual;
   if (disponibles <= 0) return "agotado";
-  if (disponibles <= UMBRAL_ULTIMOS) return "ultimos_lugares";
+  // "Últimos lugares" solo si ya se ocupó alguno (no cuando está completo).
+  if (disponibles <= UMBRAL_ULTIMOS && disponibles < total)
+    return "ultimos_lugares";
   return "disponible";
 }
 
@@ -47,25 +50,51 @@ export async function crearReserva(
     const reserva = await db.$transaction(async (tx) => {
       const evento = await tx.event.findUnique({
         where: { id: input.eventId },
-        select: {
-          id: true,
-          status: true,
-          availableSeats: true,
-        },
+        select: { id: true, status: true, availableSeats: true },
       });
       if (!evento) throw new Error("El evento no existe.");
       if (evento.status === "cancelado")
         throw new Error("El evento fue cancelado.");
-      if (evento.status === "agotado" || evento.availableSeats <= 0)
-        throw new Error("El evento está agotado.");
-      if (input.cantidad > evento.availableSeats)
+
+      // Decremento atómico y condicional: la base solo descuenta si hay
+      // lugares suficientes y el evento admite reservas. Bloquea la fila,
+      // por lo que dos reservas simultáneas nunca sobrevenden.
+      const updated = await tx.event.updateMany({
+        where: {
+          id: evento.id,
+          availableSeats: { gte: input.cantidad },
+          status: { in: ["disponible", "ultimos_lugares"] },
+        },
+        data: { availableSeats: { decrement: input.cantidad } },
+      });
+      if (updated.count === 0) {
         throw new Error(
-          `Solo quedan ${evento.availableSeats} lugares disponibles.`,
+          evento.availableSeats <= 0
+            ? "El evento está agotado."
+            : `Solo quedan ${evento.availableSeats} lugares disponibles.`,
         );
+      }
 
-      const nuevosDisponibles = evento.availableSeats - input.cantidad;
+      // Recalcula el estado con el valor ya actualizado.
+      const fresco = await tx.event.findUnique({
+        where: { id: evento.id },
+        select: { availableSeats: true, totalSeats: true, status: true },
+      });
+      if (fresco) {
+        const nuevoEstado = recalcularEstadoEvento(
+          fresco.availableSeats,
+          fresco.totalSeats,
+          fresco.status,
+        );
+        if (nuevoEstado !== fresco.status) {
+          await tx.event.update({
+            where: { id: evento.id },
+            data: { status: nuevoEstado },
+          });
+        }
+      }
 
-      const creada = await tx.reservation.create({
+      return tx.reservation.create({
         data: {
           firstName: input.nombre,
           lastName: input.apellido,
@@ -83,16 +112,6 @@ export async function crearReserva(
           },
         },
       });
-
-      await tx.event.update({
-        where: { id: evento.id },
-        data: {
-          availableSeats: nuevosDisponibles,
-          status: recalcularEstadoEvento(nuevosDisponibles, evento.status),
-        },
-      });
-
-      return creada;
     });
 
     return { ok: true, reserva: toReserva(reserva) };
@@ -133,7 +152,7 @@ export async function cancelarReserva(id: string): Promise<void> {
 
     const evento = await tx.event.findUnique({
       where: { id: reserva.eventId },
-      select: { availableSeats: true, status: true },
+      select: { availableSeats: true, totalSeats: true, status: true },
     });
     if (evento) {
       const nuevos = evento.availableSeats + reserva.quantity;
@@ -141,7 +160,7 @@ export async function cancelarReserva(id: string): Promise<void> {
         where: { id: reserva.eventId },
         data: {
           availableSeats: nuevos,
-          status: recalcularEstadoEvento(nuevos, evento.status),
+          status: recalcularEstadoEvento(nuevos, evento.totalSeats, evento.status),
         },
       });
     }
@@ -164,7 +183,7 @@ export async function eliminarReserva(id: string): Promise<void> {
     if (ocupaLugar(reserva.status)) {
       const evento = await tx.event.findUnique({
         where: { id: reserva.eventId },
-        select: { availableSeats: true, status: true },
+        select: { availableSeats: true, totalSeats: true, status: true },
       });
       if (evento) {
         const nuevos = evento.availableSeats + reserva.quantity;
@@ -172,7 +191,7 @@ export async function eliminarReserva(id: string): Promise<void> {
           where: { id: reserva.eventId },
           data: {
             availableSeats: nuevos,
-            status: recalcularEstadoEvento(nuevos, evento.status),
+            status: recalcularEstadoEvento(nuevos, evento.totalSeats, evento.status),
           },
         });
       }
@@ -201,7 +220,7 @@ export async function actualizarReserva(
 
       const evento = await tx.event.findUnique({
         where: { id: actual.eventId },
-        select: { availableSeats: true, status: true },
+        select: { availableSeats: true, totalSeats: true, status: true },
       });
       if (!evento) throw new Error("El evento no existe.");
 
@@ -219,7 +238,11 @@ export async function actualizarReserva(
         where: { id: actual.eventId },
         data: {
           availableSeats: nuevosDisponibles,
-          status: recalcularEstadoEvento(nuevosDisponibles, evento.status),
+          status: recalcularEstadoEvento(
+            nuevosDisponibles,
+            evento.totalSeats,
+            evento.status,
+          ),
         },
       });
 
