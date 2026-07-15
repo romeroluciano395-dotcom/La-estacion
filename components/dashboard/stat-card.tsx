@@ -22,24 +22,22 @@ export function StatCard({
   };
 
   return (
-    <div className="group rounded-2xl border border-white/10 bg-card/60 p-5 backdrop-blur-xl transition-colors hover:border-white/20">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="truncate text-sm text-muted-foreground">{label}</p>
-          <p className="mt-2 text-2xl font-bold tracking-tight">{value}</p>
-          {hint && (
-            <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
-          )}
-        </div>
+    <div className="group rounded-2xl border border-white/10 bg-card/60 p-4 backdrop-blur-xl transition-colors hover:border-white/20 sm:p-5">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-sm leading-tight text-muted-foreground">{label}</p>
         <span
           className={cn(
-            "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl",
+            "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl sm:h-11 sm:w-11",
             accents[accent],
           )}
         >
           <Icon className="h-5 w-5" />
         </span>
       </div>
+      <p className="mt-3 truncate text-xl font-bold tracking-tight sm:text-2xl">
+        {value}
+      </p>
+      {hint && <p className="mt-1 text-xs text-muted-foreground">{hint}</p>}
     </div>
   );
 }
