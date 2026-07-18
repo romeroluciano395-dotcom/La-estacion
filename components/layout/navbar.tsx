@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import { MessageCircle } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -30,6 +30,11 @@ export function Navbar() {
       document.body.style.overflow = "";
     };
   }, [open]);
+
+  // Cierra el menú al navegar (evita que quede trabado).
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
 
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
@@ -105,60 +110,43 @@ export function Navbar() {
         </button>
       </div>
 
-      {/* Menú móvil */}
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.25 }}
-            className="fixed inset-x-0 top-16 z-40 h-[calc(100dvh-4rem)] overflow-y-auto bg-background lg:hidden"
-          >
-            <nav className="container-app flex flex-col gap-2 py-8">
-              {NAV_LINKS.map((link, i) => (
-                <motion.div
-                  key={link.href}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.05 * i + 0.1 }}
-                >
-                  <Link
-                    href={link.href}
-                    onClick={() => setOpen(false)}
-                    className={cn(
-                      "block rounded-xl px-4 py-3.5 text-lg font-medium transition-colors",
-                      isActive(link.href)
-                        ? "bg-white/10 text-white"
-                        : "text-muted-foreground hover:bg-white/5 hover:text-white",
-                    )}
-                  >
-                    {link.label}
-                  </Link>
-                </motion.div>
-              ))}
-
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-                className="mt-4"
-              >
-                <Button variant="success" size="lg" className="w-full" asChild>
-                  <a
-                    href={WHATSAPP_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <MessageCircle className="h-5 w-5" />
-                    Escribinos por WhatsApp
-                  </a>
-                </Button>
-              </motion.div>
-            </nav>
-          </motion.div>
+      {/*
+        Menú móvil con CSS puro (siempre montado, se muestra/oculta con
+        opacidad + pointer-events). Evita el bug de AnimatePresence que dejaba
+        el menú huérfano tapando la página al navegar.
+      */}
+      <div
+        aria-hidden={!open}
+        className={cn(
+          "fixed inset-x-0 top-16 z-40 h-[calc(100dvh-4rem)] overflow-y-auto bg-background transition-opacity duration-300 lg:hidden",
+          open ? "opacity-100" : "pointer-events-none opacity-0",
         )}
-      </AnimatePresence>
+      >
+        <nav className="container-app flex flex-col gap-2 py-8">
+          {NAV_LINKS.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              onClick={() => setOpen(false)}
+              className={cn(
+                "block rounded-xl px-4 py-3.5 text-lg font-medium transition-colors",
+                isActive(link.href)
+                  ? "bg-white/10 text-white"
+                  : "text-muted-foreground hover:bg-white/5 hover:text-white",
+              )}
+            >
+              {link.label}
+            </Link>
+          ))}
+
+          <Button variant="success" size="lg" className="mt-4 w-full" asChild>
+            <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer">
+              <MessageCircle className="h-5 w-5" />
+              Escribinos por WhatsApp
+            </a>
+          </Button>
+        </nav>
+      </div>
     </header>
   );
 }

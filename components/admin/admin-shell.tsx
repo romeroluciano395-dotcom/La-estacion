@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { AnimatePresence, motion } from "framer-motion";
 import { Menu, X } from "lucide-react";
 
+import { cn } from "@/lib/utils";
 import { adminTitleFromPath } from "@/lib/admin-nav";
 import { SidebarContent } from "./sidebar-content";
 
@@ -25,6 +25,19 @@ export function AdminShell({
   const [open, setOpen] = useState(false);
   const title = adminTitleFromPath(pathname);
 
+  // Cierra el drawer al navegar (evita que quede "trabado" tras usarlo).
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
+
+  // Bloquea el scroll del body con el drawer abierto y lo restaura al cerrar.
+  useEffect(() => {
+    document.body.style.overflow = open ? "hidden" : "";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [open]);
+
   return (
     <div className="min-h-screen">
       {/* Sidebar fija (desktop) */}
@@ -32,36 +45,35 @@ export function AdminShell({
         <SidebarContent />
       </aside>
 
-      {/* Drawer (mobile) */}
-      <AnimatePresence>
-        {open && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setOpen(false)}
-              className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
-            />
-            <motion.aside
-              initial={{ x: "-100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "-100%" }}
-              transition={{ type: "spring", stiffness: 300, damping: 32 }}
-              className="fixed inset-y-0 left-0 z-50 w-72 border-r border-white/10 bg-card lg:hidden"
-            >
-              <button
-                onClick={() => setOpen(false)}
-                aria-label="Cerrar menú"
-                className="absolute right-3 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-white/10"
-              >
-                <X className="h-5 w-5" />
-              </button>
-              <SidebarContent onNavigate={() => setOpen(false)} />
-            </motion.aside>
-          </>
+      {/*
+        Drawer (mobile) con CSS puro (siempre montado, se desliza con
+        transform). No usamos AnimatePresence: al navegar durante la
+        animación de salida, dejaba el overlay huérfano tapando la pantalla
+        y el menú quedaba inutilizable.
+      */}
+      <div
+        onClick={() => setOpen(false)}
+        aria-hidden={!open}
+        className={cn(
+          "fixed inset-0 z-40 bg-black/60 backdrop-blur-sm transition-opacity duration-300 lg:hidden",
+          open ? "opacity-100" : "pointer-events-none opacity-0",
         )}
-      </AnimatePresence>
+      />
+      <aside
+        className={cn(
+          "fixed inset-y-0 left-0 z-50 w-72 border-r border-white/10 bg-card transition-transform duration-300 lg:hidden",
+          open ? "translate-x-0" : "-translate-x-full",
+        )}
+      >
+        <button
+          onClick={() => setOpen(false)}
+          aria-label="Cerrar menú"
+          className="absolute right-3 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-white/10"
+        >
+          <X className="h-5 w-5" />
+        </button>
+        <SidebarContent onNavigate={() => setOpen(false)} />
+      </aside>
 
       {/* Contenido */}
       <div className="lg:pl-64">
